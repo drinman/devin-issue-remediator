@@ -11,7 +11,11 @@ import requests
 DEMO_ISSUES = {
     1: {
         "title": "Fix focused utility test failure in Superset fork",
-        "body": "A focused utility test is failing after a recent change to boolean parsing.",
+        "body": (
+            "A focused utility test is failing after a recent change to boolean parsing.\n\n"
+            "CI signal: `pytest tests/unit_tests/utils/test_core.py::test_parse_boolean_string` "
+            "fails (3 of 20 parametrized cases)."
+        ),
         "labels": ["bug", "devin:auto-remediate", "devin:ci-failure"],
     },
     2: {
