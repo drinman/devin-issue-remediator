@@ -5,13 +5,14 @@ from typing import Any
 from uuid import uuid4
 
 from app.config import Settings
-from app.devin import MockDevinClient
+from app.devin import DevinClient
 from app.storage import RunStorage
 
 
 AUTO_REMEDIATE_LABEL = "devin:auto-remediate"
 ALLOWED_ACTIONS = {"opened", "labeled", "edited", "reopened"}
 DEFAULT_DEMO_REPO_URL = "https://github.com/drinman/superset"
+TERMINAL_STATUSES = {"completed", "failed"}
 
 
 class RemediationWorkflow:
@@ -19,7 +20,7 @@ class RemediationWorkflow:
         self,
         settings: Settings,
         storage: RunStorage,
-        devin_client: MockDevinClient,
+        devin_client: DevinClient,
     ) -> None:
         self.settings = settings
         self.storage = storage
@@ -78,21 +79,22 @@ class RemediationWorkflow:
         run = self.storage.get_run(run_id)
         if run is None:
             return None
+        if run["status"] in TERMINAL_STATUSES:
+            return run
 
         status = self.devin_client.get_session(run["devin_session_id"])
-        completed_at = utc_now()
-        duration_seconds = seconds_since(run["triggered_at"], completed_at)
-        return self.storage.update_run(
-            run_id,
-            {
-                "status": status.status,
-                "outcome": status.outcome,
-                "pr_url": status.pr_url,
-                "completed_at": completed_at,
-                "duration_seconds": duration_seconds,
-                "updated_at": completed_at,
-            },
-        )
+        now = utc_now()
+        updates: dict[str, Any] = {
+            "status": status.status,
+            "outcome": status.outcome,
+            # A PR seen on an earlier poll must never be blanked by a later one.
+            "pr_url": status.pr_url or run["pr_url"],
+            "updated_at": now,
+        }
+        if status.status in TERMINAL_STATUSES:
+            updates["completed_at"] = now
+            updates["duration_seconds"] = seconds_since(run["triggered_at"], now)
+        return self.storage.update_run(run_id, updates)
 
 
 def ignored_event_reason(payload: dict[str, Any]) -> str | None:

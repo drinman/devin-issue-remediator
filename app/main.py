@@ -7,7 +7,7 @@ from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 
 from app.config import settings
-from app.devin import MockDevinClient
+from app.devin import DevinClient, LiveDevinClient, MockDevinClient
 from app.metrics import calculate_metrics
 from app.storage import RunStorage
 from app.workflow import RemediationWorkflow
@@ -19,7 +19,7 @@ def create_app(app_settings=settings) -> FastAPI:
     workflow = RemediationWorkflow(
         settings=app_settings,
         storage=storage,
-        devin_client=MockDevinClient(),
+        devin_client=build_devin_client(app_settings),
     )
 
     @app.get("/", response_class=HTMLResponse)
@@ -63,6 +63,19 @@ def create_app(app_settings=settings) -> FastAPI:
         return calculate_metrics(storage.list_runs())
 
     return app
+
+
+def build_devin_client(app_settings) -> DevinClient:
+    if app_settings.app_mode == "live":
+        if not app_settings.devin_api_key:
+            raise RuntimeError(
+                "APP_MODE=live requires DEVIN_API_KEY. Set it in .env or use APP_MODE=demo."
+            )
+        return LiveDevinClient(
+            api_key=app_settings.devin_api_key,
+            max_acu_limit=app_settings.devin_max_acu_limit,
+        )
+    return MockDevinClient()
 
 
 def render_dashboard(mode: str, runs: list[dict[str, Any]], metrics: dict[str, float | int]) -> str:

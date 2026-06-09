@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     app_mode: str = "demo"
     devin_api_key: str = ""
     devin_org_id: str = ""
+    devin_max_acu_limit: int = 10
     github_token: str = ""
     github_webhook_secret: str = ""
     github_owner: str = ""
