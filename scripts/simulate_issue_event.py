@@ -20,7 +20,10 @@ DEMO_ISSUES = {
     },
     2: {
         "title": "Clean up small code quality issue in targeted Superset utility module",
-        "body": "There is a small targeted code quality issue in a Superset utility module.",
+        "body": (
+            "There is a small targeted code quality issue in `superset/utils/core.py`. "
+            "Keep the cleanup narrow and lint-level."
+        ),
         "labels": ["devin:auto-remediate", "devin:code-quality"],
     },
     3: {
