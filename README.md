@@ -36,6 +36,8 @@ Current implementation:
 - `app/metrics.py` owns aggregate metric calculation.
 - `scripts/simulate_issue_event.py` sends a fake GitHub issue event to the local app.
 
+How the event arrives: the webhook receiver (`POST /webhooks/github`) is real; the simulator plays GitHub's part locally by sending the same `issues` event payload GitHub would deliver. Pointing a live GitHub webhook at this endpoint is a repository-settings change, not a code change.
+
 ## Quickstart
 ```bash
 cp .env.example .env
@@ -91,6 +93,41 @@ Tracked issues:
 
 Each issue has `devin:auto-remediate` plus a task-specific Devin label.
 
+## Live Remediation Results
+Both remediations below were produced by real Devin sessions, created and tracked by this app in Live Mode.
+
+| Issue | Task type | Devin PR | Time to PR |
+| --- | --- | --- | --- |
+| [#3 Improve developer guidance for focused backend tests](https://github.com/drinman/superset/issues/3) | docs_quality | [PR #4](https://github.com/drinman/superset/pull/4) | ~12 min (incl. an access blocker) |
+| [#1 Fix focused utility test failure](https://github.com/drinman/superset/issues/1) | ci_failure | [PR #5](https://github.com/drinman/superset/pull/5) | ~8 min |
+
+Issue [#2](https://github.com/drinman/superset/issues/2) is intentionally left open as the visible queue: the same label fires the same workflow whenever the team delegates it.
+
+### Known-baseline validation behind issue #1
+Issue #1 exercises the CI-failure path against a known-good answer: a one-line case-sensitivity regression in `parse_boolean_string` (a prior cleanup dropped `.lower()`), failing 3 of 20 parametrized cases. Devin reproduced the failure with the focused pytest command, traced it to the offending commit, restored the behavior while keeping the legitimate cleanup — fixing the function, not the test — and validated 20 of 20 passing before opening PR #5.
+
+The issue #3 run also captured the human-gate lifecycle on the dashboard: the session sat `waiting_for_user` during a GitHub-access blocker, then completed once access was granted.
+
+### Metrics snapshot after both live runs
+```json
+{
+    "eligible_issues_detected": 2,
+    "delegated_to_devin": 2,
+    "automation_coverage": 1.0,
+    "active_sessions": 0,
+    "completed_sessions": 2,
+    "failed_sessions": 0,
+    "blocked_sessions": 0,
+    "prs_opened": 2,
+    "human_review_required": 2,
+    "avg_time_to_first_response_seconds": 0,
+    "avg_time_to_completion_seconds": 591.1,
+    "estimated_manual_triage_minutes_saved": 60
+}
+```
+
+Time to first response is 0 seconds because delegation happens synchronously in the webhook handler — the trigger and the first response are the same moment.
+
 ## Live Mode
 Live Mode creates and polls real Devin sessions through the same orchestration path as Demo Mode. Set in `.env`:
 
@@ -140,7 +177,15 @@ Copy `.env.example` to `.env` for local runs.
 - Keep sample payloads fake and public-safe.
 - Demo Mode must remain credential-free and must not make external network calls.
 
+## Limitations
+- No live GitHub issue comments; observable outputs are Devin's PRs plus this app's dashboard, run APIs, and metrics.
+- No webhook signature verification; the demo trigger is the local simulator.
+- Status refresh is on-demand (`POST /runs/<run_id>/refresh`); there is no background polling loop.
+- The Superset fork has no CI configured, so PR checks pass trivially (0 checks).
+
+These are deliberate scope choices; see Next Steps.
+
 ## Next Steps
-1. Add live-mode GitHub webhook signature verification.
-2. Add real Devin API session creation behind `APP_MODE=live`.
-3. Add live GitHub issue comments for session started, status refresh, and completion.
+1. Add live GitHub issue comments for session started, status refresh, and completion.
+2. Add webhook signature verification and register a live GitHub webhook on the fork.
+3. Add a background status-polling loop so runs complete without manual refresh.
