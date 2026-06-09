@@ -1,37 +1,43 @@
 # Devin Issue Remediator
 
 ## Project Summary
-Devin Issue Remediator is a planned Dockerized automation that will listen for GitHub issues labeled `devin:auto-remediate`, start Devin sessions through the Devin API, track remediation status, comment back to GitHub, and expose a simple metrics dashboard.
+Devin Issue Remediator is a Dockerized FastAPI demo app for event-driven engineering remediation. When a GitHub issue event contains the label `devin:auto-remediate`, the app creates a run, starts a mock Devin session in Demo Mode, persists run state in SQLite, and exposes a small dashboard plus metrics endpoints.
 
-This milestone is only the project foundation. It does not implement GitHub webhooks, Devin API calls, persistence, or dashboard logic yet.
+This milestone implements the safe local demo path. It does not make live Devin API calls or post live GitHub comments yet.
 
 ## Problem
 Maintainers need a reliable way to turn selected GitHub issues into automated remediation sessions without manually copying issue context, starting sessions, and reporting status by hand.
 
 ## Architecture
-The future app will run as a FastAPI service in Docker. It will accept GitHub issue events, validate target labels, route work to Devin in live mode, persist status, and expose health and metrics endpoints.
+```text
+GitHub issue event or local simulator
+        |
+        v
+FastAPI webhook receiver
+        |
+        v
+Eligibility check: devin:auto-remediate
+        |
+        v
+Prompt builder + Mock Devin client
+        |
+        v
+SQLite run storage
+        |
+        v
+Dashboard, run APIs, metrics
+```
 
-Current scaffold:
-- FastAPI app package under `app/`
-- Environment-based settings in `app/config.py`
-- Docker and Compose setup for local review
-- Fake sample GitHub payload for future demo wiring
-- Placeholder simulator script
-
-## Design Notes
-At each stage, it should be clear:
-
-- What event enters the system.
-- What decision the app makes.
-- What work Devin owns versus what this app owns.
-- What state is stored and why.
-- What proof shows the workflow is working.
-
-Before adding new behavior, identify the files that own that behavior and the command that proves it works.
+Current implementation:
+- `app/main.py` owns FastAPI routes and the HTML dashboard.
+- `app/workflow.py` owns event eligibility, prompt building, simulation, and refresh behavior.
+- `app/devin.py` owns the Demo Mode mock Devin client.
+- `app/storage.py` owns SQLite persistence.
+- `app/metrics.py` owns aggregate metric calculation.
+- `scripts/simulate_issue_event.py` sends a fake GitHub issue event to the local app.
 
 ## Quickstart
 ```bash
-cd devin-issue-remediator
 cp .env.example .env
 docker compose up --build
 ```
@@ -40,8 +46,8 @@ In another terminal:
 
 ```bash
 curl http://localhost:8000/health
-curl http://localhost:8000/
 python scripts/simulate_issue_event.py
+open http://localhost:8000
 ```
 
 Expected health response:
@@ -53,10 +59,40 @@ Expected health response:
 ## Demo Mode
 Demo Mode is the default via `APP_MODE=demo`.
 
-Demo Mode will eventually run without real Devin or GitHub credentials. For this scaffold, it only starts the FastAPI app and exposes basic health checks.
+Demo Mode requires no Devin or GitHub credentials. It uses a fake GitHub payload and a mock Devin client so the workflow can be inspected locally.
+
+Useful endpoints:
+
+```bash
+curl http://localhost:8000/runs
+curl http://localhost:8000/metrics
+curl -X POST http://localhost:8000/runs/<run_id>/refresh
+```
+
+The refresh endpoint advances a mock run to `completed` with outcome `pr_opened`.
+
+## Local Tests
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m pytest
+```
+
+## Superset Fork and Issues
+The target repo is a public fork:
+
+- [drinman/superset](https://github.com/drinman/superset)
+
+Tracked issues:
+
+- [#1 Fix focused utility test failure in Superset fork](https://github.com/drinman/superset/issues/1)
+- [#2 Clean up small code quality issue in targeted Superset utility module](https://github.com/drinman/superset/issues/2)
+- [#3 Improve developer guidance for running focused backend tests](https://github.com/drinman/superset/issues/3)
+
+Each issue has `devin:auto-remediate` plus a task-specific Devin label.
 
 ## Live Mode
-Live Mode is reserved for future milestones. It is expected to require real Devin and GitHub credentials, webhook signature verification, API error handling, status tracking, and safe logging.
+Live Mode is reserved for a later milestone. It is expected to require real Devin and GitHub credentials, webhook signature verification, API error handling, status refresh, and safe logging.
 
 Do not assume Live Mode is implemented yet.
 
@@ -79,11 +115,9 @@ Copy `.env.example` to `.env` for local runs.
 - Do not commit `.env`.
 - Do not commit real API keys, webhook secrets, private URLs, customer data, or internal data.
 - Keep sample payloads fake and public-safe.
-- Demo Mode should remain credential-free.
+- Demo Mode must remain credential-free and must not make external network calls.
 
 ## Next Steps
-1. Add local/demo issue event ingestion.
-2. Validate the `devin:auto-remediate` label.
-3. Persist a remediation record.
-4. Expose a minimal status endpoint.
-5. Keep live Devin and GitHub calls out until the live-mode milestone.
+1. Add live-mode GitHub webhook signature verification.
+2. Add real Devin API session creation behind `APP_MODE=live`.
+3. Add live GitHub issue comments for session started, status refresh, and completion.
