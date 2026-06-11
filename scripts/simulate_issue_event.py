@@ -31,6 +31,14 @@ DEMO_ISSUES = {
         "body": "The developer documentation should make it easier to run a focused backend test locally.",
         "labels": ["devin:auto-remediate", "devin:docs"],
     },
+    7: {
+        "title": "Improve developer guidance for running focused lint and type checks",
+        "body": (
+            "The developer documentation should make it easier to run focused lint "
+            "and type checks against a single file locally."
+        ),
+        "labels": ["devin:auto-remediate", "devin:docs"],
+    },
 }
 
 
