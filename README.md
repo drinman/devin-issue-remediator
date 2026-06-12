@@ -102,8 +102,9 @@ The remediations below were produced by real Devin sessions, created and tracked
 | [#3 Improve developer guidance for focused backend tests](https://github.com/drinman/superset/issues/3) | docs_quality | [PR #4](https://github.com/drinman/superset/pull/4) | ~12 min (incl. an access blocker) |
 | [#1 Fix focused utility test failure](https://github.com/drinman/superset/issues/1) | ci_failure | [PR #5](https://github.com/drinman/superset/pull/5) | ~8 min |
 | [#2 Clean up small code quality issue](https://github.com/drinman/superset/issues/2) | code_quality | [PR #6](https://github.com/drinman/superset/pull/6) | ~5 min |
+| [#7 Improve developer guidance for focused lint and type checks](https://github.com/drinman/superset/issues/7) | docs_quality | [PR #9](https://github.com/drinman/superset/pull/9) | ~3 min |
 
-Issue [#7](https://github.com/drinman/superset/issues/7) is the open queue item: the same label fires the same workflow whenever the team delegates it.
+All four tracked issues have been remediated by real Devin sessions; the same label fires the same workflow whenever the next issue is delegated. Review and merge remain human-owned.
 
 ### Known-baseline validation behind issue #1
 Issue #1 exercises the CI-failure path against a known-good answer: a one-line case-sensitivity regression in `parse_boolean_string` (a prior cleanup dropped `.lower()`), failing 3 of 20 parametrized cases. Devin reproduced the failure with the focused pytest command, traced it to the offending commit, restored the behavior while keeping the legitimate cleanup — fixing the function, not the test — and validated 20 of 20 passing before opening PR #5.
