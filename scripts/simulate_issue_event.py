@@ -34,8 +34,8 @@ DEMO_ISSUES = {
     7: {
         "title": "Improve developer guidance for running focused lint and type checks",
         "body": (
-            "The developer documentation should make it easier to run focused lint "
-            "and type checks against a single file locally."
+            "The contributor documentation should include a copy-paste example for running "
+            "focused lint and type checks on a single file before opening a pull request."
         ),
         "labels": ["devin:auto-remediate", "devin:docs"],
     },
